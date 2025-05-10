@@ -53,18 +53,18 @@ struct page_directory {
 
 // THIS CODE NOT CRACH
 void init_paging(struct limine_hhdm_response * hhdm_reponse) {
+    Breakpoint();
     // Creat new page directory
     struct page_directory *pml4_new = (struct page_directory*)((uint64_t)allocPage() + hhdm_reponse->offset);
     // Secure the new page directory
     memset(pml4_new, 0, sizeof(struct page_directory));
     printl("pml4 aligement : %lx \n", (uint64_t)pml4_new - hhdm_reponse->offset);
+    printl("pml4 new : %lx \n", (uint64_t)pml4_new);
+    printl("pml4 new havent hddm : %lx \n", (uint64_t)pml4_new - hhdm_reponse->offset);
+    printl("pml4 old : %lx \n", (uint64_t)read_cr3() & ~0xFFFULL);
 
     // get the old page directory
-    struct page_directory *pml4_old;
-    __asm__("movq %%cr3, %0" : "=r"(pml4_old));
-    // get virtual address of the old page directory
-    pml4_old = (struct page_directory*)((uint64_t)pml4_old + hhdm_reponse->offset);
-
+    struct page_directory *pml4_old = (struct page_directory *)((read_cr3() & ~0xFFFULL) + hhdm_reponse->offset);
 
     // Copy the old PML4 to the new one
     for (uint64_t pml4_entry  = 0; pml4_entry  < 512; pml4_entry ++) {
@@ -94,12 +94,6 @@ void init_paging(struct limine_hhdm_response * hhdm_reponse) {
                             struct page_table * PT_new = (struct page_table*)((uint64_t)allocPage() + hhdm_reponse->offset);
                             if (PT_old == NULL || PT_new == NULL) { printl("PT = NULL");  asm ("hlt");}
 
-
-                            if ((uint64_t)PD_new < hhdm_reponse->offset || PD_new == NULL) {
-                                printl("PD_new invalide !");
-                                break;
-                                asm("hlt");
-                            }
                             memcpy(&PD_new->entries[pd_entry], &PD_old->entries[pd_entry],sizeof(struct page_directory_entry));
                             PD_new->entries[pd_entry].page_ppn  = ((uint64_t)PT_new - hhdm_reponse->offset) >> 12;
 
@@ -115,10 +109,17 @@ void init_paging(struct limine_hhdm_response * hhdm_reponse) {
             }
         } 
     }
-
-    printl("Before mov ");
-    uint64_t pml4_physical = (uint64_t)pml4_new - hhdm_reponse->offset;
-    asm volatile ("mov %0, %%cr3" :: "r"(pml4_physical));
+    printl("Before mov \n");
+    Breakpoint();
+    uint64_t pml4_physical = (uint64_t)pml4_new - hhdm_reponse->offset;    
+    asm volatile("mov %0, %%cr3" :: "r"(pml4_physical) : "memory");
     printl("Paging is set");
 
+}
+
+
+
+
+void Breakpoint() {
+    int i = 1;
 }

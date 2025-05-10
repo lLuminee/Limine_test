@@ -80,6 +80,8 @@ ifeq ($(ARCH),x86_64)
             -target x86_64-unknown-none
     endif
     override CFLAGS += \
+        -g \
+        -O0 \
         -m64 \
         -march=x86-64 \
         -mno-80387 \

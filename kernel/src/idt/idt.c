@@ -41,13 +41,8 @@ void page_fault_handler() {
 }
 
 
-extern void isr14();  // Déclaration de la fonction de gestion
 void init_idt() {
-    set_idt_entry(14, isr14, 0x08, 0x8E, 0);
     struct IDTR idtr;
-    idtr.limit = sizeof(idt) - 1;
-    idtr.base = (uint64_t)&idt;
-    asm volatile("lidt %0" : : "m"(idtr));
     printl("IDT initialisée\n");
 
 }
